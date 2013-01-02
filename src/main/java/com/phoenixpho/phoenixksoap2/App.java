@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -75,9 +76,11 @@ public class App
   "package "+packDest+"; \n\n"                
 + "import java.util.Hashtable; \n"
 + "import java.util.Vector; \n\n"
++ "import com.phoenix.soap.SoapEnvelopeRegisterable;\n"
++ "import org.ksoap2.serialization.SoapSerializationEnvelope;\n"
 + "import org.ksoap2.serialization.KvmSerializable;\n"
 + "import org.ksoap2.serialization.PropertyInfo;\n\n"
-+ "public class "+n+"VectorSerializer extends Vector<"+t+"> implements KvmSerializable { \n"
++ "public class "+n+"VectorSerializer extends Vector<"+t+"> implements KvmSerializable, SoapEnvelopeRegisterable { \n"
 + "    private static final long serialVersionUID = 1L;  // you can let the IDE generate this \n\n"
 + "    @Override\n"
 + "    public Object getProperty(int index) {\n"
@@ -95,7 +98,12 @@ public class App
 + "    public void getPropertyInfo(int index, Hashtable properties, PropertyInfo info) { \n"
 + "    info.name = \""+fieldName+"\"; \n"
 + "    info.type = "+t+".class; \n"
++ "    info.setNamespace(com.phoenix.soap.ServiceConstants.NAMESPACE); \n"                
 + "    } \n\n"
++ "    @Override \n"
++ "    public void register(SoapSerializationEnvelope soapEnvelope) { \n"
++ "        soapEnvelope.addMapping(com.phoenix.soap.ServiceConstants.NAMESPACE, \""+en.getSimpleName()+"\", "+t+".class);\n"
++ "    }"                        
 + "}\n");
         return sb.toString();
     }
@@ -112,6 +120,9 @@ public class App
         
         // Map from list to wrapper
         Map<String, String> wrappers = new HashMap<String, String>();
+        // classes from same package, not enum
+        List<Class<?>> internalClasses = new LinkedList<Class<?>>();
+        
         Map<String, Class<?>> wrappersCls = new HashMap<String, Class<?>>();
         
         // declaration
@@ -146,6 +157,10 @@ public class App
             
             if (t.startsWith(pack)){
                 attributesFromSamePackage.put(f, t.replace(pack, packDest));
+            }
+            
+            if (enumTypes.contains(t)== false && t.startsWith(pack)){
+                internalClasses.add(ftype);
             }
             
             String type = ftype.getCanonicalName().replace(pack, packDest);
@@ -379,6 +394,12 @@ public class App
             for(Entry<String, String> e : entrySet1){
                 sb.append(
 "                soapEnvelope.addMapping(com.phoenix.soap.ServiceConstants.NAMESPACE, \""+e.getValue()+"\", "+e.getValue()+".class);\n");
+            }
+            
+            // call recursively for classes from same package
+            for(Class<?> ftype : internalClasses){
+                sb.append(
+"                soapEnvelope.addMapping(com.phoenix.soap.ServiceConstants.NAMESPACE, \""+ftype.getSimpleName()+"\", "+ftype.getCanonicalName()+".class);\n");
             }
             
          sb.append(
