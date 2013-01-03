@@ -16,6 +16,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import org.reflections.Reflections;
 import org.reflections.scanners.ConvertersScanner;
@@ -122,7 +123,6 @@ public class App
         Map<String, String> wrappers = new HashMap<String, String>();
         // classes from same package, not enum
         List<Class<?>> internalClasses = new LinkedList<Class<?>>();
-        
         Map<String, Class<?>> wrappersCls = new HashMap<String, Class<?>>();
         
         // declaration
@@ -216,10 +216,10 @@ public class App
         // getProperty
         sb.append(
   "     /*\n"
-+ "	 * (non-Javadoc)\n"
-+ "	 * \n"
-+ "	 * @see org.ksoap2.serialization.KvmSerializable#getProperty(int)\n"
-+ "	 */\n"
++ "      * (non-Javadoc)\n"
++ "      * \n"
++ "      * @see org.ksoap2.serialization.KvmSerializable#getProperty(int)\n"
++ "      */\n"
 + "	@Override\n"
 + "	public Object getProperty(int index) {\n"
 + "		switch (index){\n");
@@ -242,17 +242,17 @@ public class App
 "		    default:\n"
 + "		         return null;\n"
 + "	    }\n"
-+ "	}\n");
++ "	}\n\n");
         
         
         // get property info
         sb.append(
   "     /*\n"
-+ "	 * (non-Javadoc)\n"
-+ "	 * \n"
-+ "	 * @see org.ksoap2.serialization.KvmSerializable#getPropertyInfo(int,\n"
++ "      * (non-Javadoc)\n"
++ "      * \n"
++ "      * @see org.ksoap2.serialization.KvmSerializable#getPropertyInfo(int,\n"
 + "      * java.util.Hashtable, org.ksoap2.serialization.PropertyInfo)\n"                
-+ "	 */\n"
++ "      */\n"
 + "	@Override\n"
 + "	public void getPropertyInfo(int index, Hashtable arg1, PropertyInfo info) {\n"
 + "		switch (index){\n");
@@ -296,20 +296,19 @@ public class App
 "		    default:\n"
 + "		         break;\n"
 + "	    }\n"
-+ "	}\n");
-        
-        
++ "	}\n\n");
+
         
         // set property
         sb.append(
   "     /*\n"
-+ "	 * (non-Javadoc)\n"
-+ "	 * \n"
-+ "	 * @see org.ksoap2.serialization.KvmSerializable#setProperty(int,\n"
++ "      * (non-Javadoc)\n"
++ "      * \n"
++ "      * @see org.ksoap2.serialization.KvmSerializable#setProperty(int,\n"
 + "      * java.lang.Object)\n"                
-+ "	 */\n"
-+ "	@Override\n"
-+ "	public void setProperty(int index, Object arg1) {\n"
++ "      */\n"
++ "     @Override\n"
++ "     public void setProperty(int index, Object arg1) {\n"
 + "		switch (index){\n");
         for(int i = 0, sz = fields.length; i < sz; i++){
             Field fld = fields[i];
@@ -365,7 +364,7 @@ public class App
 "		    default:\n"
 + "		         return;\n"
 + "	    }\n"
-+ "	}\n");   
++ "	}\n\n");   
         
         // register envelope - if has special types registered
         sb.append("\t@Override \n"
@@ -380,6 +379,16 @@ public class App
             
             if (hasDouble || hasFloat){
                 sb.append("\t\tnew org.ksoap2.serialization.MarshalFloat().register(soapEnvelope);\n");
+            }
+            
+            // get XML ROOT annotation - obtain real name to register
+            XmlRootElement rootElem = en.getAnnotation(XmlRootElement.class);
+            System.out.println(" ----------> ROOTELEM: " + rootElem);
+            
+            // register self class
+            if (rootElem!=null){
+                sb.append(
+"                soapEnvelope.addMapping(com.phoenix.soap.ServiceConstants.NAMESPACE, \""+rootElem.name()+"\", "+(en.getCanonicalName().replace(pack, packDest))+".class);\n");
             }
             
             // any subclass from this package present?
@@ -399,11 +408,30 @@ public class App
             // call recursively for classes from same package
             for(Class<?> ftype : internalClasses){
                 sb.append(
-"                soapEnvelope.addMapping(com.phoenix.soap.ServiceConstants.NAMESPACE, \""+ftype.getSimpleName()+"\", "+ftype.getCanonicalName()+".class);\n");
+"                soapEnvelope.addMapping(com.phoenix.soap.ServiceConstants.NAMESPACE, \""+ftype.getSimpleName()+"\", "+(ftype.getCanonicalName().replace(pack, packDest))+".class);\n");
             }
             
          sb.append(
-"	} \n\n\n");
+"	} \n\n");
+         
+         //toString
+         sb.append(
+  "    @Override\n"
++ "    public String toString() {\n"
++ "        return ");
+         sb.append('"').append(en.getSimpleName()).append("{\"");
+         for(int i = 0, sz = fields.length; i < sz; i++){
+            Field fld = fields[i];
+            String n = fld.getName();
+            
+            sb.append("+\"");
+            if (i>0) sb.append(", ");
+            sb.append(n).append("=\" + this.").append(n);
+         }
+         sb.append(" + '}';\n"
++ "    }\n");
+        //return "UserIdentifier{" + "userSIP=" + userSIP + ", userID=" + userID + '}';
+    
         
         // end class
         sb.append("}\n");
