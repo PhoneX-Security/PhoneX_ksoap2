@@ -125,6 +125,9 @@ public class App
         List<Class<?>> internalClasses = new LinkedList<Class<?>>();
         Map<String, Class<?>> wrappersCls = new HashMap<String, Class<?>>();
         
+        // attribute name to index
+        Map<String, Integer> attr2idx = new HashMap<String, Integer>();
+        
         // declaration
         sb.append("package "+packDest+";\n\n");
         sb.append("import com.phoenix.soap.SoapEnvelopeRegisterable;\n");
@@ -137,9 +140,13 @@ public class App
         sb.append("public class ").append(en.getSimpleName()).append(" implements KvmSerializable, SoapEnvelopeRegisterable {\n\n");
         sb.append("\tpublic final static String NAMESPACE = \"http://phoenix.com/hr/schemas\";\n");
         
+        // workaround for null vector serializer - if empty, do not serialize them
+        sb.append("\tprotected boolean ignoreNullWrappers = false;\n");
+        
         // fields declaration
         Field[] fields = en.getDeclaredFields();
-        for(Field fld : fields){
+        for(int i = 0, sz = fields.length; i < sz; i++){
+            Field fld = fields[i];
             String f = fld.getName();
             Class<?> ftype = fld.getType();
             String t = ftype.getCanonicalName();
@@ -187,6 +194,7 @@ public class App
                 }
             }
             
+            attr2idx.put(fld.getName(), Integer.valueOf(i));
             sb.append("\tprotected ")
                     .append(type)
                     .append(" ")
@@ -203,15 +211,65 @@ public class App
             } else {
                 sb.append(getterSetter(fld, type.getCanonicalName().replace(pack, packDest))).append("\n");
             }
-            
         }
+        
+        // add getter/setter for ignoreNullWrapper workaround
+        sb.append("\n").append(getterSetterRaw("ignoreNullWrappers", "IgnoreNullWrappers", "boolean")).append("\n");
         
         // kvm serializable implementation
         sb.append("\n\t@Override \n"
-+"	public int getPropertyCount() { \n"
-+"		return "+fields.length+"; \n"
-+"	} \n"
++"	public int getPropertyCount() { \n");
+        
+        if (wrappers.isEmpty()){
+            sb.append(
+ "        return "+fields.length+";\n");
+        } else {
+            sb.append(
+ "        int length = " + fields.length + ";\n"
++"        if (this.ignoreNullWrappers==false) return length;\n");
+            // generate vector wrapper related code
+            for(Entry<String,String> e : wrappers.entrySet()){
+                sb.append(
+ "        if (this.").append(e.getKey()).append("==null) length=-1;\n");
+            }
+            sb.append(
+ "        return length; \n");
+        }
+        
+        sb.append(
+ "	} \n"
 +"\n\n");
+        
+        // ignoreNullWrapperShift()
+        // used to ignore null wrappers during serialization so as not to produce
+        // lists with one empty instance
+        sb.append(
+  "    /**\n"
++ "     * Computes index shift for serialization methods in order to ignore null\n"
++ "     * wrappers during serialization so as not to produce lists with one empty\n"
++ "     * instance\n"
++ "     */\n"
++ "     protected int ignoreNullWrapperShift(int idx) {\n"
+        );
+        // for null wrappers ignore this
+        if (wrappers.isEmpty()){
+            sb.append(
+  "        return idx;\n");
+        } else {
+            sb.append(
+  "        int i = idx;\n"
++ "        if (this.ignoreNullWrappers==false) return i;\n");
+            for(Entry<String,String> e : wrappers.entrySet()){
+                String attr = e.getKey();
+                int idxOfWrapper = attr2idx.get(attr);
+                sb.append(
+  "        if (i==").append(idxOfWrapper).append(" && this.").append(attr).append("==null) i+=1;\n");
+            }
+            sb.append(
+  "        return i;\n");
+        }
+        sb.append(
+  "    }\n\n");
         
         // getProperty
         sb.append(
@@ -222,6 +280,7 @@ public class App
 + "      */\n"
 + "	@Override\n"
 + "	public Object getProperty(int index) {\n"
++ "		index = this.ignoreNullWrapperShift(index);\n"
 + "		switch (index){\n");
         for(int i = 0, sz = fields.length; i < sz; i++){
             Field fld = fields[i];
@@ -255,6 +314,7 @@ public class App
 + "      */\n"
 + "	@Override\n"
 + "	public void getPropertyInfo(int index, Hashtable arg1, PropertyInfo info) {\n"
++ "		index = this.ignoreNullWrapperShift(index);\n"
 + "		switch (index){\n");
         for(int i = 0, sz = fields.length; i < sz; i++){
             Field fld = fields[i];
@@ -309,6 +369,7 @@ public class App
 + "      */\n"
 + "     @Override\n"
 + "     public void setProperty(int index, Object arg1) {\n"
++ "		index = this.ignoreNullWrapperShift(index);\n"
 + "		switch (index){\n");
         for(int i = 0, sz = fields.length; i < sz; i++){
             Field fld = fields[i];
@@ -506,12 +567,24 @@ public class App
      * @return 
      */
     public static String getterSetter(Field fld, String tc){
-        StringBuilder sb = new StringBuilder();
+        //StringBuilder sb = new StringBuilder();
         Class<?> ftype = fld.getType();
         String n = fld.getName();
         String N = Character.toUpperCase(n.charAt(0)) + n.substring(1);
         //String tc = ftype.getCanonicalName().replace(pack, packDest);
-
+        
+        return getterSetterRaw(n, N, tc);
+    }
+    
+    /**
+     * Generate raw getter and setter from passed variables
+     * @param n attribute name
+     * @param N function name for getter and setter - attribute suffix, first upper
+     * @param tc type of attribute
+     * @return 
+     */
+    public static String getterSetterRaw(String n, String N, String tc){
+        StringBuilder sb = new StringBuilder();
         sb.append(
 "    /**\n" +
 "     * Gets the value of the "+n+" property.\n" +
