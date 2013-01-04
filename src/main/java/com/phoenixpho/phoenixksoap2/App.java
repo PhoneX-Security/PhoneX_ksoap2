@@ -8,6 +8,7 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -49,10 +50,14 @@ public class App
     static {
         Map<String, String> aMap = new HashMap<String, String>();
         aMap.put("java.lang.String",    "PropertyInfo.STRING_CLASS");
-        aMap.put("java.lang.Long",      "PropertyInfo.LONG_CLASS");
-        aMap.put("long",                "PropertyInfo.LONG_CLASS");
-        aMap.put("int",                 "PropertyInfo.INTEGER_CLASS");
-        aMap.put("java.lang.Integer",   "PropertyInfo.INTEGER_CLASS");
+        aMap.put("java.lang.Long",      "PropertyInfo.STRING_CLASS");
+        aMap.put("long",                "PropertyInfo.STRING_CLASS");
+        aMap.put("int",                 "PropertyInfo.STRING_CLASS");
+        aMap.put("java.lang.Integer",   "PropertyInfo.STRING_CLASS");        
+//        aMap.put("java.lang.Long",      "PropertyInfo.LONG_CLASS");
+//        aMap.put("long",                "PropertyInfo.LONG_CLASS");
+//        aMap.put("int",                 "PropertyInfo.INTEGER_CLASS");
+//        aMap.put("java.lang.Integer",   "PropertyInfo.INTEGER_CLASS");
         aMap.put("java.util.Date",      "java.util.Date");
         returnMap = Collections.unmodifiableMap(aMap);
     }
@@ -68,7 +73,7 @@ public class App
      * @param en
      * @return 
      */
-    public static String reconstructVectorWrapper(Class<?> en, String fieldName){
+    public static String reconstructVectorWrapper(Class<?> en, String className, String fieldName, String registerAdd){
         StringBuilder sb = new StringBuilder();
         String t = en.getCanonicalName().replace(pack, packDest);
         String n = en.getSimpleName();
@@ -81,30 +86,50 @@ public class App
 + "import org.ksoap2.serialization.SoapSerializationEnvelope;\n"
 + "import org.ksoap2.serialization.KvmSerializable;\n"
 + "import org.ksoap2.serialization.PropertyInfo;\n\n"
-+ "public class "+n+"VectorSerializer extends Vector<"+t+"> implements KvmSerializable, SoapEnvelopeRegisterable { \n"
-+ "    private static final long serialVersionUID = 1L;  // you can let the IDE generate this \n\n"
++ "public class "+className+" extends Vector<"+t+"> implements KvmSerializable, SoapEnvelopeRegisterable { \n"
++ "    private static final long serialVersionUID = 1L;  // you can let the IDE generate this \n"
++ "    // Whether to allow return null size from getPropertyCount().\n"
++ "    // If yes then de-serialization won't work.\n"
++ "    private boolean allowReturnNullSize = false;   \n\n"
++ getterSetterRaw("allowReturnNullSize", "AllowReturnNullSize", "boolean") + "\n\n"
 + "    @Override\n"
 + "    public Object getProperty(int index) {\n"
 + "        return this.get(index);\n"
 + "    }\n\n"
 + "    @Override \n"
 + "    public int getPropertyCount() { \n"
-+ "    return this.size(); \n"
++ "        int i = this.size(); \n"
++ "        if (i==0 && this.allowReturnNullSize==false) return 1; \n"
++ "        return i;\n"
 + "    } \n\n"
 + "    @Override \n"
 + "    public void setProperty(int index, Object value) { \n"
-+ "    this.add(("+t+") value); \n"
++ "        this.add(("+t+") value); \n"
 + "    } \n\n"
 + "    @Override \n"
 + "    public void getPropertyInfo(int index, Hashtable properties, PropertyInfo info) { \n"
-+ "    info.name = \""+fieldName+"\"; \n"
-+ "    info.type = "+t+".class; \n"
-+ "    info.setNamespace(com.phoenix.soap.ServiceConstants.NAMESPACE); \n"                
++ "        info.name = \""+fieldName+"\"; \n"
++ "        info.type = "+t+".class; \n"
++ "        info.setNamespace(com.phoenix.soap.ServiceConstants.NAMESPACE); \n"                
 + "    } \n\n"
 + "    @Override \n"
 + "    public void register(SoapSerializationEnvelope soapEnvelope) { \n"
 + "        soapEnvelope.addMapping(com.phoenix.soap.ServiceConstants.NAMESPACE, \""+en.getSimpleName()+"\", "+t+".class);\n"
-+ "    }"                        
++ "        soapEnvelope.addMapping(com.phoenix.soap.ServiceConstants.NAMESPACE, \""+fieldName+"\", "+t+".class);\n"
+);
+        // additional registration entries
+        if(registerAdd!=null){
+            sb.append(registerAdd).append("\n");
+        }
+        
+        // recursive call for subtype from package
+        if (en.getCanonicalName().startsWith(pack)){
+            sb.append(
+  "        new "+en.getSimpleName()+"().register(soapEnvelope);\n");
+        }
+        
+        sb.append(
+  "    }"                        
 + "}\n");
         return sb.toString();
     }
@@ -151,6 +176,11 @@ public class App
             Class<?> ftype = fld.getType();
             String t = ftype.getCanonicalName();
             
+            // return transform
+            if ("_return".equals(f)){
+                f="return";
+            }
+            
             // special serializers
             if ("byte[]".equalsIgnoreCase(t)){
                 hasByteArray=true;
@@ -181,16 +211,42 @@ public class App
                     Class<?> partype = (Class<?>) pt.getActualTypeArguments()[0];
                     System.out.println("    parametrizedType: " + partype.getSimpleName()); // class java.lang.String.
                 
-                
-                    // generate wrapper name
-                    String wrapperName = generateWrapperName(partype);
-                    wrappers.put(f, wrapperName);
-                    wrappersCls.put(f, partype);
-                    // generate wrapper 
-                    String wrapperBody = reconstructVectorWrapper(partype, f);
-                    vectorSerializers.put(wrapperName, wrapperBody);
+                    
+                    // special feature:
+                    // fixing asymmetry between JAXB and KSOAP2 comprehension of 
+                    // arrays and serialization. JAXB interprets SEQUENCE with auxiliary
+                    // class which is redundant in ksoap and causes problems. Thus SEQUENCE
+                    // type is now directly used.
+                    
+                    // get XML ROOT annotation - obtain real name to register
+                    XmlRootElement rootElem = en.getAnnotation(XmlRootElement.class);
+            
+                    // register self class
+                    String registerAdd = null;
+                    if (rootElem!=null){
+                        registerAdd = 
+  "        soapEnvelope.addMapping(com.phoenix.soap.ServiceConstants.NAMESPACE, \""+rootElem.name()+"\", "+(en.getCanonicalName().replace(pack, packDest))+".class);\n";
+                    }
+                    
+                    // if has only one field called _return -> skip wrapper, do it directly
+                    if (fields.length==1){
+                        System.out.println("SEQUENCE element");
+                        
+                        String wrapperBody = reconstructVectorWrapper(partype, en.getSimpleName(), f, registerAdd);
+                        wrappers.put(f, en.getSimpleName());
+                        wrappersCls.put(f, partype);
+                        return wrapperBody;
+                    } else {
+                        // generate wrapper name
+                        String wrapperName = generateWrapperName(partype);
+                        wrappers.put(f, wrapperName);
+                        wrappersCls.put(f, partype);
+                        // generate wrapper 
+                        String wrapperBody = reconstructVectorWrapper(partype, wrapperName, f, null);
+                        vectorSerializers.put(wrapperName, wrapperBody);
 
-                    type = wrapperName;
+                        type = wrapperName;
+                    }
                 }
             }
             
@@ -463,7 +519,11 @@ public class App
             Set<Entry<String, String>> entrySet1 = wrappers.entrySet();
             for(Entry<String, String> e : entrySet1){
                 sb.append(
-"                soapEnvelope.addMapping(com.phoenix.soap.ServiceConstants.NAMESPACE, \""+e.getValue()+"\", "+e.getValue()+".class);\n");
+"                soapEnvelope.addMapping(com.phoenix.soap.ServiceConstants.NAMESPACE, \""+e.getValue()+"\", "+e.getValue()+".class);\n"); 
+                if (vectorSerializers.containsKey(e.getKey())){
+                    sb.append(
+"                new "+e.getValue()+"().register(soapEnvelope);\n");
+                }
             }
             
             // call recursively for classes from same package
@@ -688,6 +748,11 @@ public class App
                 //System.out.println("<CLASS>");
                 //System.out.println(body);
                 //System.out.println("</CLASS>");
+            }
+            
+            if (body.isEmpty()){
+                System.out.println("Empty body");
+                continue;
             }
             
             String fname = cls.getSimpleName() + ".java";
