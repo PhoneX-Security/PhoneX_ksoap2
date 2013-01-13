@@ -8,7 +8,6 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -675,7 +674,7 @@ public class App
     
     
     public static void main( String[] args )
-    {
+    {        
         System.out.println( "Hello World!" );
         Reflections.collect();
         
