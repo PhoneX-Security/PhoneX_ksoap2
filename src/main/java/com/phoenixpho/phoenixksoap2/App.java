@@ -51,12 +51,13 @@ public class App
         aMap.put("java.lang.String",    "PropertyInfo.STRING_CLASS");
         aMap.put("java.lang.Long",      "PropertyInfo.STRING_CLASS");
         aMap.put("long",                "PropertyInfo.STRING_CLASS");
-        aMap.put("int",                 "PropertyInfo.STRING_CLASS");
-        aMap.put("java.lang.Integer",   "PropertyInfo.STRING_CLASS");        
+//        aMap.put("int",                 "PropertyInfo.STRING_CLASS");
+//        aMap.put("java.lang.Integer",   "PropertyInfo.STRING_CLASS");        
 //        aMap.put("java.lang.Long",      "PropertyInfo.LONG_CLASS");
 //        aMap.put("long",                "PropertyInfo.LONG_CLASS");
-//        aMap.put("int",                 "PropertyInfo.INTEGER_CLASS");
-//        aMap.put("java.lang.Integer",   "PropertyInfo.INTEGER_CLASS");
+        aMap.put("int",                 "PropertyInfo.INTEGER_CLASS");
+        aMap.put("java.lang.Integer",   "PropertyInfo.INTEGER_CLASS");
+        aMap.put("Integer",             "PropertyInfo.INTEGER_CLASS");
         aMap.put("java.util.Date",      "java.util.Date");
         returnMap = Collections.unmodifiableMap(aMap);
     }
@@ -76,6 +77,18 @@ public class App
         StringBuilder sb = new StringBuilder();
         String t = en.getCanonicalName().replace(pack, packDest);
         String n = en.getSimpleName();
+        String infoType = t;
+        
+        if (enumTypes.contains(t)){
+            infoType = "PropertyInfo.STRING_CLASS;";
+        } else if (t.startsWith(packDest)){
+            infoType = t;
+        } else if (returnMap.containsKey(t)){
+            infoType = returnMap.get(t);
+        } else {
+            infoType = t;
+        }
+        
         n = Character.toUpperCase(n.charAt(0)) + n.substring(1);
         sb.append(
   "package "+packDest+"; \n\n"                
@@ -108,7 +121,7 @@ public class App
 + "    @Override \n"
 + "    public void getPropertyInfo(int index, Hashtable properties, PropertyInfo info) { \n"
 + "        info.name = \""+fieldName+"\"; \n"
-+ "        info.type = "+t+".class; \n"
++ "        info.type = "+infoType+"; \n"
 + "        info.setNamespace(com.phoenix.soap.ServiceConstants.NAMESPACE); \n"                
 + "    } \n\n"
 + "    @Override \n"
@@ -229,7 +242,7 @@ public class App
                     
                     // if has only one field called _return -> skip wrapper, do it directly
                     if (fields.length==1){
-                        System.out.println("SEQUENCE element");
+                        System.out.println("SEQUENCE element (generating with reconstructWrapper), elem: " + en.getSimpleName());
                         
                         String wrapperBody = reconstructVectorWrapper(partype, en.getSimpleName(), f, registerAdd);
                         wrappers.put(f, en.getSimpleName());
@@ -346,7 +359,7 @@ public class App
             // is defined enum?
             if (enumTypes.contains(ftype.getCanonicalName())){
                 sb.append(
-"                       return this." + n + " == null ? null : this." + n + ".toString();\n");
+"                       return this." + n + " == null ? null : this." + n + ".toString().toLowerCase();\n");
             } else {
                 sb.append(
 "                       return this." + n + ";\n");
