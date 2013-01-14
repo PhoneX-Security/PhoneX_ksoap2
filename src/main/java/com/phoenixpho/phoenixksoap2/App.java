@@ -82,11 +82,11 @@ public class App
         if (enumTypes.contains(t)){
             infoType = "PropertyInfo.STRING_CLASS;";
         } else if (t.startsWith(packDest)){
-            infoType = t;
+            infoType = t + ".class";
         } else if (returnMap.containsKey(t)){
             infoType = returnMap.get(t);
         } else {
-            infoType = t;
+            infoType = t + ".class";
         }
         
         n = Character.toUpperCase(n.charAt(0)) + n.substring(1);
