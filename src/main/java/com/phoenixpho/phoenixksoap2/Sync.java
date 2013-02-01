@@ -10,7 +10,6 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import sun.text.normalizer.Replaceable;
 
 /**
  * Fetches all JAXB generated entities from original project and downloads it here.
@@ -36,6 +35,16 @@ public class Sync {
         if (dstPath.exists()==false || dstPath.isDirectory()==false || dstPath.canWrite()==false){
             System.err.println("Something is wrong with destination directory: " + DST_PATH);
             System.exit(1);
+        }
+        
+        // delete all files in dst path
+        Process p; 
+        try {
+            p = Runtime.getRuntime().exec("/bin/rm " + DST_PATH + "/*");
+            p.waitFor(); 
+        } catch (Exception ex) {
+            System.err.println("Cannot delete old files in dst directory");
+            ex.printStackTrace(System.err);
         }
         
         for (File child : srcDir.listFiles()){
