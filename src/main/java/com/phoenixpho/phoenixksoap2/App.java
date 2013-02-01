@@ -58,6 +58,8 @@ public class App
         aMap.put("int",                 "PropertyInfo.INTEGER_CLASS");
         aMap.put("java.lang.Integer",   "PropertyInfo.INTEGER_CLASS");
         aMap.put("Integer",             "PropertyInfo.INTEGER_CLASS");
+        aMap.put("boolean",             "PropertyInfo.BOOLEAN_CLASS");
+        aMap.put("Boolean",             "PropertyInfo.BOOLEAN_CLASS");
         aMap.put("java.util.Date",      "java.util.Date");
         returnMap = Collections.unmodifiableMap(aMap);
     }
@@ -158,6 +160,7 @@ public class App
         
         // Map from list to wrapper
         Map<String, String> wrappers = new HashMap<String, String>();
+        Set<String> currVectorizers = new HashSet<String>();
         // classes from same package, not enum
         List<Class<?>> internalClasses = new LinkedList<Class<?>>();
         Map<String, Class<?>> wrappersCls = new HashMap<String, Class<?>>();
@@ -255,9 +258,9 @@ public class App
                         wrappersCls.put(f, partype);
                         // generate wrapper 
                         String wrapperBody = reconstructVectorWrapper(partype, wrapperName, f, null);
-                        wrappers.put(wrapperName, wrapperName);
-                        attr2idx.put(wrapperName, Integer.valueOf(i));
+                        attr2idx.put(f, Integer.valueOf(i));
                         vectorSerializers.put(wrapperName, wrapperBody);
+                        currVectorizers.add(wrapperName);
                         type = wrapperName;
                     }
                 }
@@ -299,7 +302,7 @@ public class App
             // generate vector wrapper related code
             for(Entry<String,String> e : wrappers.entrySet()){
                 sb.append(
- "        if (this.").append(e.getKey()).append("==null) length=-1;\n");
+ "        if (this.").append(e.getKey()).append("==null) length-=1;\n");
             }
             sb.append(
  "        return length; \n");
@@ -419,7 +422,7 @@ public class App
   "                info.type = PropertyInfo.STRING_CLASS;\n");
             }
             sb.append(
-"                   break;\n");
+"                break;\n");
         }
         sb.append(
 "            default:\n"
@@ -479,7 +482,10 @@ public class App
   "                this."+n+" = Integer.parseInt(arg1.toString());\n");
             } else if ("long".equalsIgnoreCase(c)) {
                 sb.append(
-  "                this."+n+" = Long.parseLong(arg1.toString());\n");                
+  "                this."+n+" = Long.parseLong(arg1.toString());\n");          
+            } else if ("boolean".equalsIgnoreCase(c)) {
+                sb.append(
+  "                this."+n+" = Boolean.parseBoolean(arg1.toString());\n");
             } else if (wrappers.containsKey(n)){
                 sb.append(
   "                this."+n+" = ("+wrappers.get(n)+") arg1;\n");
@@ -488,7 +494,7 @@ public class App
   "                this."+n+" = ("+(c.replace(pack, packDest))+")arg1;\n");
             }
             sb.append(
-"                   break;\n");
+"                break;\n");
         }
         sb.append(
 "            default:\n"
@@ -549,6 +555,10 @@ public class App
                 if (registeredObjects.contains(ftype.getSimpleName())) continue;
                 
                 sb.append("        soapEnvelope.addMapping(com.phoenix.soap.ServiceConstants.NAMESPACE, \""+ftype.getSimpleName()+"\", "+(ftype.getCanonicalName().replace(pack, packDest))+".class);\n");
+            }
+            
+            for(String c : currVectorizers){
+                sb.append("        new "+c+"().register(soapEnvelope);\n");
             }
             
          sb.append("    } \n\n");
