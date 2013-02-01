@@ -175,10 +175,10 @@ public class App
         sb.append("import org.ksoap2.serialization.PropertyInfo;\n\n\n");
         
         sb.append("public class ").append(en.getSimpleName()).append(" implements KvmSerializable, SoapEnvelopeRegisterable {\n\n");
-        sb.append("\tpublic final static String NAMESPACE = \"http://phoenix.com/hr/schemas\";\n");
+        sb.append("    public final static String NAMESPACE = \"http://phoenix.com/hr/schemas\";\n");
         
         // workaround for null vector serializer - if empty, do not serialize them
-        sb.append("\tprotected boolean ignoreNullWrappers = false;\n");
+        sb.append("    protected boolean ignoreNullWrappers = false;\n");
         
         // fields declaration
         Field[] fields = en.getDeclaredFields();
@@ -255,15 +255,16 @@ public class App
                         wrappersCls.put(f, partype);
                         // generate wrapper 
                         String wrapperBody = reconstructVectorWrapper(partype, wrapperName, f, null);
+                        wrappers.put(wrapperName, wrapperName);
+                        attr2idx.put(wrapperName, Integer.valueOf(i));
                         vectorSerializers.put(wrapperName, wrapperBody);
-
                         type = wrapperName;
                     }
                 }
             }
             
             attr2idx.put(fld.getName(), Integer.valueOf(i));
-            sb.append("\tprotected ")
+            sb.append("    protected ")
                     .append(type)
                     .append(" ")
                     .append(fld.getName())
@@ -285,8 +286,8 @@ public class App
         sb.append("\n").append(getterSetterRaw("ignoreNullWrappers", "IgnoreNullWrappers", "boolean")).append("\n");
         
         // kvm serializable implementation
-        sb.append("\n\t@Override \n"
-+"	public int getPropertyCount() { \n");
+        sb.append("\n    @Override \n"
++"    public int getPropertyCount() { \n");
         
         if (wrappers.isEmpty()){
             sb.append(
@@ -305,7 +306,7 @@ public class App
         }
         
         sb.append(
- "	} \n"
+ "    } \n"
 +"\n\n");
         
         // ignoreNullWrapperShift()
@@ -346,30 +347,30 @@ public class App
 + "      * \n"
 + "      * @see org.ksoap2.serialization.KvmSerializable#getProperty(int)\n"
 + "      */\n"
-+ "	@Override\n"
-+ "	public Object getProperty(int index) {\n"
-+ "		index = this.ignoreNullWrapperShift(index);\n"
-+ "		switch (index){\n");
++ "    @Override\n"
++ "    public Object getProperty(int index) {\n"
++ "        index = this.ignoreNullWrapperShift(index);\n"
++ "        switch (index){\n");
         for(int i = 0, sz = fields.length; i < sz; i++){
             Field fld = fields[i];
             String n = fld.getName();
             Class<?> ftype = fld.getType();
             sb.append(
-"                   case " + i + ":\n");
+"            case " + i + ":\n");
             // is defined enum?
             if (enumTypes.contains(ftype.getCanonicalName())){
                 sb.append(
-"                       return this." + n + " == null ? null : this." + n + ".toString().toLowerCase();\n");
+"                return this." + n + " == null ? null : this." + n + ".toString().toLowerCase();\n");
             } else {
                 sb.append(
-"                       return this." + n + ";\n");
+"                return this." + n + ";\n");
             }
         }
         sb.append(
-"		    default:\n"
-+ "		         return null;\n"
-+ "	    }\n"
-+ "	}\n\n");
+"            default:\n"
++ "                return null;\n"
++ "        }\n"
++ "    }\n\n");
         
         
         // get property info
@@ -380,10 +381,10 @@ public class App
 + "      * @see org.ksoap2.serialization.KvmSerializable#getPropertyInfo(int,\n"
 + "      * java.util.Hashtable, org.ksoap2.serialization.PropertyInfo)\n"                
 + "      */\n"
-+ "	@Override\n"
-+ "	public void getPropertyInfo(int index, Hashtable arg1, PropertyInfo info) {\n"
-+ "		index = this.ignoreNullWrapperShift(index);\n"
-+ "		switch (index){\n");
++ "    @Override\n"
++ "    public void getPropertyInfo(int index, Hashtable arg1, PropertyInfo info) {\n"
++ "        index = this.ignoreNullWrapperShift(index);\n"
++ "        switch (index){\n");
         for(int i = 0, sz = fields.length; i < sz; i++){
             Field fld = fields[i];
             String n = fld.getName();
@@ -391,40 +392,40 @@ public class App
             String c = ftype.getCanonicalName();
             
             sb.append(
-"                   case " + i + ":\n");
+"            case " + i + ":\n");
             
             sb.append(
-  "                       // type: " + c + "\n"
-+ "                       info.name = \""+n+"\";\n"
-+ "                       info.setNamespace(com.phoenix.soap.ServiceConstants.NAMESPACE);\n");
+  "                // type: " + c + "\n"
++ "                info.name = \""+n+"\";\n"
++ "                info.setNamespace(com.phoenix.soap.ServiceConstants.NAMESPACE);\n");
             //info.type = PropertyInfo.STRING_CLASS;
             // is enum?
             if (enumTypes.contains(c)){
                 sb.append(
-  "                       info.type = PropertyInfo.STRING_CLASS;\n");
+  "                info.type = PropertyInfo.STRING_CLASS;\n");
             } else if (c.startsWith(pack)){
                 sb.append(
-  "                       info.type = "+(c.replace(pack, packDest))+".class;\n");
+  "                info.type = "+(c.replace(pack, packDest))+".class;\n");
             } else if (returnMap.containsKey(c)){
                 String transform = returnMap.get(c);
                 sb.append(
-  "                       info.type = "+transform+";\n");
+  "                info.type = "+transform+";\n");
             } else if (wrappers.containsKey(n)){
                 // has serializer
                 sb.append(
-  "                       info.type = "+wrappers.get(n)+".class;\n");
+  "                info.type = "+wrappers.get(n)+".class;\n");
             } else {
                 sb.append(
-  "                       info.type = PropertyInfo.STRING_CLASS;\n");
+  "                info.type = PropertyInfo.STRING_CLASS;\n");
             }
             sb.append(
 "                   break;\n");
         }
         sb.append(
-"		    default:\n"
-+ "		         break;\n"
-+ "	    }\n"
-+ "	}\n\n");
+"            default:\n"
++ "                break;\n"
++ "        }\n"
++ "    }\n\n");
 
         
         // set property
@@ -437,8 +438,8 @@ public class App
 + "      */\n"
 + "     @Override\n"
 + "     public void setProperty(int index, Object arg1) {\n"
-+ "		index = this.ignoreNullWrapperShift(index);\n"
-+ "		switch (index){\n");
++ "        index = this.ignoreNullWrapperShift(index);\n"
++ "        switch (index){\n");
         for(int i = 0, sz = fields.length; i < sz; i++){
             Field fld = fields[i];
             String n = fld.getName();
@@ -446,69 +447,72 @@ public class App
             String c = ftype.getCanonicalName();
             
             sb.append(
-  "                   case " + i + ":\n"
-+ "                       // type: " + c + "\n");
+  "            case " + i + ":\n"
++ "                // type: " + c + "\n");
             // is enum?
             if (enumTypes.contains(c)){
                 sb.append(
-  "                       this."+n+" = "+(c.replace(pack, packDest))+".fromValue((String) arg1);\n");
+  "                this."+n+" = "+(c.replace(pack, packDest))+".fromValue((String) arg1);\n");
             } else if ("byte[]".equalsIgnoreCase(c)) {
                 // byte, can be base64 encoded or raw
                 sb.append(
   "                if (arg1 instanceof String){ \n"
-+ "	    		this."+n+" = org.spongycastle.util.encoders.Base64.decode((String)arg1);\n"
-+ "	    	} else if (arg1 instanceof byte[]){\n"
-+ "	    		this."+n+" = (byte[]) arg1;\n"
-+ "	    	} else { \n"
-+ "	    		throw new IllegalArgumentException(\"Format unknown\"); \n"
-+ "	    	}");
++ "                    this."+n+" = org.spongycastle.util.encoders.Base64.decode((String)arg1);\n"
++ "                } else if (arg1 instanceof byte[]){\n"
++ "                    this."+n+" = (byte[]) arg1;\n"
++ "                } else { \n"
++ "                    throw new IllegalArgumentException(\"Format unknown\"); \n"
++ "                }");
             } else if ("java.util.Date".equalsIgnoreCase(c)){
                 sb.append(
-  "                     DateFormat formatter = new SimpleDateFormat(\"MM/dd/yy\"); \n"
-+ "			Date date=null; \n"
-+ "			try { \n"
-+ "				date = formatter.parse((String) arg1); \n"
-+ "			} catch (ParseException e) { \n"
-+ "				Log.e(\"GetOneTimeTokenResponse\", \"Problem with date parsing\", e); \n"
-+ "			} \n"
-+ "			\n"
-+ "     	    	this."+n+" = date;  \n");
+  "                DateFormat formatter = new SimpleDateFormat(\"MM/dd/yy\"); \n"
++ "                Date date=null; \n"
++ "                try { \n"
++ "                    date = formatter.parse((String) arg1); \n"
++ "                } catch (ParseException e) { \n"
++ "                    Log.e(\"GetOneTimeTokenResponse\", \"Problem with date parsing\", e); \n"
++ "                } \n"
++ "                \n"
++ "                this."+n+" = date;  \n");
             } else if ("int".equalsIgnoreCase(c)) {
                 sb.append(
-  "                       this."+n+" = Integer.parseInt(arg1.toString());\n");
+  "                this."+n+" = Integer.parseInt(arg1.toString());\n");
             } else if ("long".equalsIgnoreCase(c)) {
                 sb.append(
-  "                       this."+n+" = Long.parseLong(arg1.toString());\n");                
+  "                this."+n+" = Long.parseLong(arg1.toString());\n");                
             } else if (wrappers.containsKey(n)){
                 sb.append(
-  "                       this."+n+" = ("+wrappers.get(n)+") arg1;\n");
+  "                this."+n+" = ("+wrappers.get(n)+") arg1;\n");
             } else {
                 sb.append(
-  "                       this."+n+" = ("+(c.replace(pack, packDest))+")arg1;\n");
+  "                this."+n+" = ("+(c.replace(pack, packDest))+")arg1;\n");
             }
             sb.append(
 "                   break;\n");
         }
         sb.append(
-"		    default:\n"
-+ "		         return;\n"
-+ "	    }\n"
-+ "	}\n\n");   
+"            default:\n"
++ "                return;\n"
++ "        }\n"
++ "    }\n\n");   
         
         // register envelope - if has special types registered
-        sb.append("\t@Override \n"
-+"	public void register(SoapSerializationEnvelope soapEnvelope) { \n");
+        sb.append("    @Override \n"
++"    public void register(SoapSerializationEnvelope soapEnvelope) { \n");
             if (hasByteArray){
-                sb.append("\t\tnew org.ksoap2.serialization.MarshalBase64().register(soapEnvelope);\n");
+                sb.append("        new org.ksoap2.serialization.MarshalBase64().register(soapEnvelope);\n");
             }
             
             if (hasDate){
-                sb.append("\t\tnew org.ksoap2.serialization.MarshalDate().register(soapEnvelope);\n");
+                sb.append("        new org.ksoap2.serialization.MarshalDate().register(soapEnvelope);\n");
             }
             
             if (hasDouble || hasFloat){
-                sb.append("\t\tnew org.ksoap2.serialization.MarshalFloat().register(soapEnvelope);\n");
+                sb.append("        new org.ksoap2.serialization.MarshalFloat().register(soapEnvelope);\n");
             }
+            
+            // store already registered objects to avoid duplicates
+            Set<String> registeredObjects = new HashSet<String>();
             
             // get XML ROOT annotation - obtain real name to register
             XmlRootElement rootElem = en.getAnnotation(XmlRootElement.class);
@@ -516,36 +520,38 @@ public class App
             
             // register self class
             if (rootElem!=null){
-                sb.append(
-"                soapEnvelope.addMapping(com.phoenix.soap.ServiceConstants.NAMESPACE, \""+rootElem.name()+"\", "+(en.getCanonicalName().replace(pack, packDest))+".class);\n");
+                registeredObjects.add(rootElem.name());
+                sb.append("        soapEnvelope.addMapping(com.phoenix.soap.ServiceConstants.NAMESPACE, \""+rootElem.name()+"\", "+(en.getCanonicalName().replace(pack, packDest))+".class);\n");
             }
             
             // any subclass from this package present?
             Set<Entry<String, String>> entrySet = attributesFromSamePackage.entrySet();
             for(Entry<String, String> e : entrySet){
-                sb.append(
-"                soapEnvelope.addMapping(com.phoenix.soap.ServiceConstants.NAMESPACE, \""+e.getKey()+"\", "+e.getValue()+".class);\n");
+                registeredObjects.add(e.getKey());
+                sb.append("        soapEnvelope.addMapping(com.phoenix.soap.ServiceConstants.NAMESPACE, \""+e.getKey()+"\", "+e.getValue()+".class);\n");
             }
             
             // wrappers
             Set<Entry<String, String>> entrySet1 = wrappers.entrySet();
-            for(Entry<String, String> e : entrySet1){
-                sb.append(
-"                soapEnvelope.addMapping(com.phoenix.soap.ServiceConstants.NAMESPACE, \""+e.getValue()+"\", "+e.getValue()+".class);\n"); 
+            for(Entry<String, String> e : entrySet1){     
+                if (registeredObjects.contains(e.getValue())==false) {
+                    registeredObjects.add(e.getValue());
+                    sb.append("        soapEnvelope.addMapping(com.phoenix.soap.ServiceConstants.NAMESPACE, \""+e.getValue()+"\", "+e.getValue()+".class);\n"); 
+                }
+                
                 if (vectorSerializers.containsKey(e.getKey())){
-                    sb.append(
-"                new "+e.getValue()+"().register(soapEnvelope);\n");
+                    sb.append("        new "+e.getValue()+"().register(soapEnvelope);\n");
                 }
             }
             
             // call recursively for classes from same package
             for(Class<?> ftype : internalClasses){
-                sb.append(
-"                soapEnvelope.addMapping(com.phoenix.soap.ServiceConstants.NAMESPACE, \""+ftype.getSimpleName()+"\", "+(ftype.getCanonicalName().replace(pack, packDest))+".class);\n");
+                if (registeredObjects.contains(ftype.getSimpleName())) continue;
+                
+                sb.append("        soapEnvelope.addMapping(com.phoenix.soap.ServiceConstants.NAMESPACE, \""+ftype.getSimpleName()+"\", "+(ftype.getCanonicalName().replace(pack, packDest))+".class);\n");
             }
             
-         sb.append(
-"	} \n\n");
+         sb.append("    } \n\n");
          
          //toString
          sb.append(
