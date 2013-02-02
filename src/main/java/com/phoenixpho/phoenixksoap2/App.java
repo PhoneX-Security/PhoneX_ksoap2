@@ -448,6 +448,7 @@ public class App
             String n = fld.getName();
             Class<?> ftype = fld.getType();
             String c = ftype.getCanonicalName();
+            System.out.println("   Fld: " + n + "; type: [" + c + "]"); 
             
             sb.append(
   "            case " + i + ":\n"
@@ -460,12 +461,16 @@ public class App
                 // byte, can be base64 encoded or raw
                 sb.append(
   "                if (arg1 instanceof String){ \n"
-+ "                    this."+n+" = org.spongycastle.util.encoders.Base64.decode((String)arg1);\n"
++ "                    final String tmp = (String) arg1;\n"
++ "                    if (tmp==null || tmp.isEmpty())\n"
++ "                        this."+n+" = null; \n"
++ "                    else\n"
++ "                        this."+n+" = org.spongycastle.util.encoders.Base64.decode(tmp);\n"
 + "                } else if (arg1 instanceof byte[]){\n"
 + "                    this."+n+" = (byte[]) arg1;\n"
 + "                } else { \n"
 + "                    throw new IllegalArgumentException(\"Format unknown\"); \n"
-+ "                }");
++ "                }\n");
             } else if ("java.util.Date".equalsIgnoreCase(c)){
                 sb.append(
   "                DateFormat formatter = new SimpleDateFormat(\"MM/dd/yy\"); \n"
@@ -784,8 +789,9 @@ public class App
             }
             
             String fname = cls.getSimpleName() + ".java";
-            if ("CertificateStatus.java".equals(fname)
-                    || "CertificateWrapper.java".equals(fname)
+            if (    false
+                    //|| "CertificateStatus.java".equals(fname)
+                    //|| "CertificateWrapper.java".equals(fname)
                     || "GetOneTimeTokenRequest.java".equals(fname)
                     || "GetOneTimeTokenResponse.java".equals(fname)
                     || "SignCertificateRequest.java".equals(fname)
