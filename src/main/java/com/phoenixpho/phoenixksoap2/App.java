@@ -462,7 +462,7 @@ public class App
                 sb.append(
   "                if (arg1 instanceof String){ \n"
 + "                    final String tmp = (String) arg1;\n"
-+ "                    if (tmp==null || tmp.isEmpty())\n"
++ "                    if (tmp==null || tmp.length()==0)\n"
 + "                        this."+n+" = null; \n"
 + "                    else\n"
 + "                        this."+n+" = org.spongycastle.util.encoders.Base64.decode(tmp);\n"
