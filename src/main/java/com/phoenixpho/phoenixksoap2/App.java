@@ -40,8 +40,9 @@ public class App
     }
     
     // cache enum types 
+    public static final String AppPack = "net.phonex";
     public static final String pack = "com.phoenix.soap.beans";
-    public static final String packDest = "com.phoenix.soap.entities";
+    public static final String packDest = AppPack + ".soap.entities";
     public static Set<String> enumTypes = new HashSet<String>();
     // serializer name, serializer body
     public static Map<String, String> vectorSerializers = new HashMap<String, String>();
@@ -96,7 +97,7 @@ public class App
   "package "+packDest+"; \n\n"                
 + "import java.util.Hashtable; \n"
 + "import java.util.Vector; \n\n"
-+ "import com.phoenix.soap.SoapEnvelopeRegisterable;\n"
++ "import "+AppPack+".soap.SoapEnvelopeRegisterable;\n"
 + "import org.ksoap2.serialization.SoapSerializationEnvelope;\n"
 + "import org.ksoap2.serialization.KvmSerializable;\n"
 + "import org.ksoap2.serialization.PropertyInfo;\n\n"
@@ -124,12 +125,12 @@ public class App
 + "    public void getPropertyInfo(int index, Hashtable properties, PropertyInfo info) { \n"
 + "        info.name = \""+fieldName+"\"; \n"
 + "        info.type = "+infoType+"; \n"
-+ "        info.setNamespace(com.phoenix.soap.ServiceConstants.NAMESPACE); \n"                
++ "        info.setNamespace("+AppPack+".soap.ServiceConstants.NAMESPACE); \n"                
 + "    } \n\n"
 + "    @Override \n"
 + "    public void register(SoapSerializationEnvelope soapEnvelope) { \n"
-+ "        soapEnvelope.addMapping(com.phoenix.soap.ServiceConstants.NAMESPACE, \""+en.getSimpleName()+"\", "+t+".class);\n"
-+ "        soapEnvelope.addMapping(com.phoenix.soap.ServiceConstants.NAMESPACE, \""+fieldName+"\", "+t+".class);\n"
++ "        soapEnvelope.addMapping("+AppPack+".soap.ServiceConstants.NAMESPACE, \""+en.getSimpleName()+"\", "+t+".class);\n"
++ "        soapEnvelope.addMapping("+AppPack+".soap.ServiceConstants.NAMESPACE, \""+fieldName+"\", "+t+".class);\n"
 );
         // additional registration entries
         if(registerAdd!=null){
@@ -170,7 +171,7 @@ public class App
         
         // declaration
         sb.append("package "+packDest+";\n\n");
-        sb.append("import com.phoenix.soap.SoapEnvelopeRegisterable;\n");
+        sb.append("import "+AppPack+".soap.SoapEnvelopeRegisterable;\n");
         sb.append("import java.util.Hashtable;\n");
         //sb.append("import org.spongycastle.util.encoders.Base64;\n");
         sb.append("import org.ksoap2.serialization.SoapSerializationEnvelope;\n");
@@ -240,7 +241,7 @@ public class App
                     String registerAdd = null;
                     if (rootElem!=null){
                         registerAdd = 
-  "        soapEnvelope.addMapping(com.phoenix.soap.ServiceConstants.NAMESPACE, \""+rootElem.name()+"\", "+(en.getCanonicalName().replace(pack, packDest))+".class);\n";
+  "        soapEnvelope.addMapping("+AppPack+".soap.ServiceConstants.NAMESPACE, \""+rootElem.name()+"\", "+(en.getCanonicalName().replace(pack, packDest))+".class);\n";
                     }
                     
                     // if has only one field called _return -> skip wrapper, do it directly
@@ -400,7 +401,7 @@ public class App
             sb.append(
   "                // type: " + c + "\n"
 + "                info.name = \""+n+"\";\n"
-+ "                info.setNamespace(com.phoenix.soap.ServiceConstants.NAMESPACE);\n");
++ "                info.setNamespace("+AppPack+".soap.ServiceConstants.NAMESPACE);\n");
             //info.type = PropertyInfo.STRING_CLASS;
             // is enum?
             if (enumTypes.contains(c)){
@@ -532,14 +533,14 @@ public class App
             // register self class
             if (rootElem!=null){
                 registeredObjects.add(rootElem.name());
-                sb.append("        soapEnvelope.addMapping(com.phoenix.soap.ServiceConstants.NAMESPACE, \""+rootElem.name()+"\", "+(en.getCanonicalName().replace(pack, packDest))+".class);\n");
+                sb.append("        soapEnvelope.addMapping("+AppPack+".soap.ServiceConstants.NAMESPACE, \""+rootElem.name()+"\", "+(en.getCanonicalName().replace(pack, packDest))+".class);\n");
             }
             
             // any subclass from this package present?
             Set<Entry<String, String>> entrySet = attributesFromSamePackage.entrySet();
             for(Entry<String, String> e : entrySet){
                 registeredObjects.add(e.getKey());
-                sb.append("        soapEnvelope.addMapping(com.phoenix.soap.ServiceConstants.NAMESPACE, \""+e.getKey()+"\", "+e.getValue()+".class);\n");
+                sb.append("        soapEnvelope.addMapping("+AppPack+".soap.ServiceConstants.NAMESPACE, \""+e.getKey()+"\", "+e.getValue()+".class);\n");
             }
             
             // wrappers
@@ -547,7 +548,7 @@ public class App
             for(Entry<String, String> e : entrySet1){     
                 if (registeredObjects.contains(e.getValue())==false) {
                     registeredObjects.add(e.getValue());
-                    sb.append("        soapEnvelope.addMapping(com.phoenix.soap.ServiceConstants.NAMESPACE, \""+e.getValue()+"\", "+e.getValue()+".class);\n"); 
+                    sb.append("        soapEnvelope.addMapping("+AppPack+".soap.ServiceConstants.NAMESPACE, \""+e.getValue()+"\", "+e.getValue()+".class);\n"); 
                 }
                 
                 if (vectorSerializers.containsKey(e.getKey())){
@@ -559,7 +560,7 @@ public class App
             for(Class<?> ftype : internalClasses){
                 if (registeredObjects.contains(ftype.getSimpleName())) continue;
                 
-                sb.append("        soapEnvelope.addMapping(com.phoenix.soap.ServiceConstants.NAMESPACE, \""+ftype.getSimpleName()+"\", "+(ftype.getCanonicalName().replace(pack, packDest))+".class);\n");
+                sb.append("        soapEnvelope.addMapping("+AppPack+".soap.ServiceConstants.NAMESPACE, \""+ftype.getSimpleName()+"\", "+(ftype.getCanonicalName().replace(pack, packDest))+".class);\n");
             }
             
             for(String c : currVectorizers){
@@ -712,9 +713,9 @@ public class App
         System.out.println( "Hello World!" );
         Reflections.collect();
         
-        //Reflections reflections = new Reflections("com.phoenix.soap.beans");
-         Predicate<String> filter = new FilterBuilder().include("com.phoenix.soap.beans\\$.*");
-         //Predicate<String> filter = new FilterBuilder().include("com.phoenix.soap.beans.*");
+        //Reflections reflections = new Reflections(""+AppPack+".soap.beans");
+         Predicate<String> filter = new FilterBuilder().include(""+AppPack+".soap.beans\\$.*");
+         //Predicate<String> filter = new FilterBuilder().include(""+AppPack+".soap.beans.*");
          Reflections reflections = new Reflections(new ConfigurationBuilder()
                 .filterInputsBy(filter)
                 .setScanners(
@@ -796,6 +797,7 @@ public class App
                     || "GetOneTimeTokenResponse.java".equals(fname)
                     || "SignCertificateRequest.java".equals(fname)
                     || "SignCertificateResponse.java".equals(fname)
+                    || "AuthCheckResponseV2.java".equals(fname)
                     ){
                 System.out.println("Ignoring: " + fname);
                 continue;
