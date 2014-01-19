@@ -472,11 +472,11 @@ public class App
                 // byte, can be base64 encoded or raw
                 sb.append(
   "                if (arg1 instanceof String){ \n"
-+ "                    final String tmp = (String) arg1;\n"
-+ "                    if (tmp==null || tmp.length()==0)\n"
++ "                    final String tmp_"+n+" = (String) arg1;\n"
++ "                    if (tmp_"+n+"==null || tmp_"+n+".length()==0)\n"
 + "                        this."+n+" = null; \n"
 + "                    else\n"
-+ "                        this."+n+" = org.spongycastle.util.encoders.Base64.decode(tmp);\n"
++ "                        this."+n+" = org.spongycastle.util.encoders.Base64.decode(tmp_"+n+");\n"
 + "                } else if (arg1 instanceof byte[]){\n"
 + "                    this."+n+" = (byte[]) arg1;\n"
 + "                } else { \n"
@@ -484,10 +484,10 @@ public class App
 + "                }\n");
             } else if ("java.util.Date".equalsIgnoreCase(c)){
                 sb.append(
-  "                DateFormat formatter = new SimpleDateFormat(\"MM/dd/yy\"); \n"
+  "                DateFormat formatter_"+n+" = new SimpleDateFormat(\"MM/dd/yy\"); \n"
 + "                Date date=null; \n"
 + "                try { \n"
-+ "                    date = formatter.parse((String) arg1); \n"
++ "                    date = formatter_"+n+".parse((String) arg1); \n"
 + "                } catch (Exception e) { \n"
 + "                    com.csipsimple.utils.Log.e(\""+en.getSimpleName()+"\", \"Problem with date parsing\", e); \n"
 + "                } \n"
@@ -495,12 +495,12 @@ public class App
 + "                this."+n+" = date;  \n");
             } else if ("javax.xml.datatype.XMLGregorianCalendar".equalsIgnoreCase(c)){
                 sb.append(
-  "                final String str1 = (String) arg1; \n"
-+ "                if (str1==null || str1.length()==0){ \n"
+  "                final String str1_"+n+" = (String) arg1; \n"
++ "                if (str1_"+n+"==null || str1_"+n+".length()==0){ \n"
 + "                    this."+n+" = null; \n"
 + "                } else { \n"
 + "                    try { \n"
-+ "                        this."+n+" = "+AppPack+".util.DateUtils.stringToCalendar(str1); \n"
++ "                        this."+n+" = "+AppPack+".util.DateUtils.stringToCalendar(str1_"+n+"); \n"
 + "                    } catch (Exception e) { \n"
 + "                        com.csipsimple.utils.Log.e(\""+en.getSimpleName()+"\", \"Problem with date parsing\", e); \n"
 + "                    } \n"
