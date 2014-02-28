@@ -242,6 +242,8 @@ public class App
         // attribute name to index
         Map<String, Integer> attr2idx = new HashMap<String, Integer>();
         
+        System.out.println("Reconstructing class " + en.getSimpleName());
+        
         // declaration
         sb.append("package "+packDest+";\n\n");
         sb.append("import "+AppPack+".soap.SoapEnvelopeRegisterable;\n");
@@ -285,15 +287,16 @@ public class App
                 hasLong=true;
             }
             
-            if (t.startsWith(pack)){
+            if (t.startsWith(pack) || t.startsWith(packDest)){
                 attributesFromSamePackage.put(f, t.replace(pack, packDest));
             }
             
-            if (enumTypes.contains(t)== false && t.startsWith(pack)){
+            if (enumTypes.contains(t) == false && (t.startsWith(pack) || t.startsWith(packDest))){
                 internalClasses.add(ftype);
             }
             
             String type = ftype.getCanonicalName().replace(pack, packDest);
+            System.err.println("  rField: " + type);
             
             // list - convert to vector
             if ("java.util.List".equalsIgnoreCase(t)){
@@ -645,14 +648,14 @@ public class App
             // register self class
             if (rootElem!=null){
                 registeredObjects.add(rootElem.name());
-                sb.append("        soapEnvelope.addMapping("+AppPack+".soap.ServiceConstants.NAMESPACE, \""+rootElem.name()+"\", "+(en.getCanonicalName().replace(pack, packDest))+".class);\n");
+                sb.append("        soapEnvelope.addMapping("+AppPack+".soap.ServiceConstants.NAMESPACE, \""+rootElem.name()+"\", "+(en.getCanonicalName().replace(pack, packDest))+".class); // root\n");
             }
             
             // any subclass from this package present?
             Set<Entry<String, String>> entrySet = attributesFromSamePackage.entrySet();
             for(Entry<String, String> e : entrySet){
                 registeredObjects.add(e.getKey());
-                sb.append("        soapEnvelope.addMapping("+AppPack+".soap.ServiceConstants.NAMESPACE, \""+e.getKey()+"\", "+e.getValue()+".class);\n");
+                sb.append("        soapEnvelope.addMapping("+AppPack+".soap.ServiceConstants.NAMESPACE, \""+e.getKey()+"\", "+e.getValue()+".class); // same package\n");
             }
             
             // wrappers
@@ -660,23 +663,29 @@ public class App
             for(Entry<String, String> e : entrySet1){     
                 if (registeredObjects.contains(e.getValue())==false) {
                     registeredObjects.add(e.getValue());
-                    sb.append("        soapEnvelope.addMapping("+AppPack+".soap.ServiceConstants.NAMESPACE, \""+e.getValue()+"\", "+e.getValue()+".class);\n"); 
+                    sb.append("        soapEnvelope.addMapping("+AppPack+".soap.ServiceConstants.NAMESPACE, \""+e.getValue()+"\", "+e.getValue()+".class); // wrapper \n"); 
                 }
                 
                 if (vectorSerializers.containsKey(e.getKey())){
-                    sb.append("        new "+e.getValue()+"().register(soapEnvelope);\n");
+                    sb.append("        new "+e.getValue()+"().register(soapEnvelope); // vector serializer \n");
                 }
             }
             
             // call recursively for classes from same package
             for(Class<?> ftype : internalClasses){
-                if (registeredObjects.contains(ftype.getSimpleName())) continue;
+                final String tt = (ftype.getCanonicalName().replace(pack, packDest));
+                if (registeredObjects.contains(ftype.getSimpleName())) {
+                    sb.append("        new "+tt+"().register(soapEnvelope); // registerable \n");
+                    continue;
+                }
                 
-                sb.append("        soapEnvelope.addMapping("+AppPack+".soap.ServiceConstants.NAMESPACE, \""+ftype.getSimpleName()+"\", "+(ftype.getCanonicalName().replace(pack, packDest))+".class);\n");
+                
+                sb.append("        soapEnvelope.addMapping("+AppPack+".soap.ServiceConstants.NAMESPACE, \""+ftype.getSimpleName()+"\", "+tt+".class); // package i class\n");
+                sb.append("        new "+tt+"().register(soapEnvelope); // registerable \n");
             }
             
             for(String c : currVectorizers){
-                sb.append("        new "+c+"().register(soapEnvelope);\n");
+                sb.append("        new "+c+"().register(soapEnvelope); // vectorizer \n");
             }
             
          sb.append("    } \n\n");
