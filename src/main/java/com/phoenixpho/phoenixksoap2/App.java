@@ -99,14 +99,14 @@ public class App
         
         // special serializers
         if ("byte[]".equalsIgnoreCase(t)){
-            return "org.ksoap2.serialization.MarshalBase64";
+            return "net.phonex.ksoap2.serialization.MarshalBase64";
             
         } else if("java.util.Date".equalsIgnoreCase(t)){
-            return "org.ksoap2.serialization.MarshalDate";
+            return "net.phonex.ksoap2.serialization.MarshalDate";
             
         } else if("java.lang.Double".equalsIgnoreCase(t)
                 || "java.lang.Float".equalsIgnoreCase(t)){
-            return "org.ksoap2.serialization.MarshalFloat";
+            return "net.phonex.ksoap2.serialization.MarshalFloat";
 
         } else if("java.lang.Integer".equalsIgnoreCase(t)){
             return "net.phonex.soap.marshallers.MarshalInteger";
@@ -156,9 +156,9 @@ public class App
 + "import java.util.Hashtable; \n"
 + "import java.util.Vector; \n\n"
 + "import "+AppPack+".soap.SoapEnvelopeRegisterable;\n"
-+ "import org.ksoap2.serialization.SoapSerializationEnvelope;\n"
-+ "import org.ksoap2.serialization.KvmSerializable;\n"
-+ "import org.ksoap2.serialization.PropertyInfo;\n\n"
++ "import net.phonex.ksoap2.serialization.SoapSerializationEnvelope;\n"
++ "import net.phonex.ksoap2.serialization.KvmSerializable;\n"
++ "import net.phonex.ksoap2.serialization.PropertyInfo;\n\n"
 + "public class "+className+" extends Vector<"+t+"> implements KvmSerializable, SoapEnvelopeRegisterable { \n"
 + "    private static final long serialVersionUID = 1L;  // you can let the IDE generate this \n"
 + "    // Whether to allow return null size from getPropertyCount().\n"
@@ -188,18 +188,21 @@ public class App
 + "    @Override \n"
 + "    public void register(SoapSerializationEnvelope soapEnvelope) { \n");
         
-        // Special marshalers may be used to serialize the list.
-        String marshaler = getMarshaler(en);
-        if (marshaler==null){
-            sb.append(""
-+ "        soapEnvelope.addMapping("+AppPack+".soap.ServiceConstants.NAMESPACE, \""+en.getSimpleName()+"\", "+t+".class);\n"
-+ "        soapEnvelope.addMapping("+AppPack+".soap.ServiceConstants.NAMESPACE, \""+fieldName+"\", "+t+".class);\n"
-            );
-        } else {
-            sb.append(""
-+ "        soapEnvelope.addMapping("+AppPack+".soap.ServiceConstants.NAMESPACE, \""+en.getSimpleName()+"\", "+t+".class, new "+marshaler+"());\n"
-+ "        soapEnvelope.addMapping("+AppPack+".soap.ServiceConstants.NAMESPACE, \""+fieldName+"\", "+t+".class, new "+marshaler+"());\n"
-            );
+        // Do not add mapping for strings...
+        if ("java.lang.String".equalsIgnoreCase(t) == false){
+            // Special marshalers may be used to serialize the list.
+            String marshaler = getMarshaler(en);
+            if (marshaler==null){
+                sb.append(""
+    + "        soapEnvelope.addMapping("+AppPack+".soap.ServiceConstants.NAMESPACE, \""+en.getSimpleName()+"\", "+t+".class);\n"
+    + "        soapEnvelope.addMapping("+AppPack+".soap.ServiceConstants.NAMESPACE, \""+fieldName+"\", "+t+".class);\n"
+                );
+            } else {
+                sb.append(""
+    + "        soapEnvelope.addMapping("+AppPack+".soap.ServiceConstants.NAMESPACE, \""+en.getSimpleName()+"\", "+t+".class, new "+marshaler+"());\n"
+    + "        soapEnvelope.addMapping("+AppPack+".soap.ServiceConstants.NAMESPACE, \""+fieldName+"\", "+t+".class, new "+marshaler+"());\n"
+                );
+            }
         }
             
         // additional registration entries
@@ -249,9 +252,9 @@ public class App
         sb.append("import "+AppPack+".soap.SoapEnvelopeRegisterable;\n");
         sb.append("import java.util.Hashtable;\n");
         //sb.append("import org.spongycastle.util.encoders.Base64;\n");
-        sb.append("import org.ksoap2.serialization.SoapSerializationEnvelope;\n");
-        sb.append("import org.ksoap2.serialization.KvmSerializable;\n");
-        sb.append("import org.ksoap2.serialization.PropertyInfo;\n\n\n");
+        sb.append("import net.phonex.ksoap2.serialization.SoapSerializationEnvelope;\n");
+        sb.append("import net.phonex.ksoap2.serialization.KvmSerializable;\n");
+        sb.append("import net.phonex.ksoap2.serialization.PropertyInfo;\n\n\n");
         
         sb.append("public class ").append(en.getSimpleName()).append(" implements KvmSerializable, SoapEnvelopeRegisterable {\n\n");
         sb.append("    public final static String NAMESPACE = \"http://phoenix.com/hr/schemas\";\n");
@@ -439,7 +442,7 @@ public class App
   "     /*\n"
 + "      * (non-Javadoc)\n"
 + "      * \n"
-+ "      * @see org.ksoap2.serialization.KvmSerializable#getProperty(int)\n"
++ "      * @see net.phonex.ksoap2.serialization.KvmSerializable#getProperty(int)\n"
 + "      */\n"
 + "    @Override\n"
 + "    public Object getProperty(int index) {\n"
@@ -472,8 +475,8 @@ public class App
   "     /*\n"
 + "      * (non-Javadoc)\n"
 + "      * \n"
-+ "      * @see org.ksoap2.serialization.KvmSerializable#getPropertyInfo(int,\n"
-+ "      * java.util.Hashtable, org.ksoap2.serialization.PropertyInfo)\n"                
++ "      * @see net.phonex.ksoap2.serialization.KvmSerializable#getPropertyInfo(int,\n"
++ "      * java.util.Hashtable, net.phonex.ksoap2.serialization.PropertyInfo)\n"                
 + "      */\n"
 + "    @Override\n"
 + "    public void getPropertyInfo(int index, Hashtable arg1, PropertyInfo info) {\n"
@@ -527,7 +530,7 @@ public class App
   "     /*\n"
 + "      * (non-Javadoc)\n"
 + "      * \n"
-+ "      * @see org.ksoap2.serialization.KvmSerializable#setProperty(int,\n"
++ "      * @see net.phonex.ksoap2.serialization.KvmSerializable#setProperty(int,\n"
 + "      * java.lang.Object)\n"                
 + "      */\n"
 + "     @Override\n"
@@ -615,15 +618,15 @@ public class App
         sb.append("    @Override \n"
 +"    public void register(SoapSerializationEnvelope soapEnvelope) { \n");
             if (hasByteArray){
-                sb.append("        new org.ksoap2.serialization.MarshalBase64().register(soapEnvelope);\n");
+                sb.append("        new net.phonex.ksoap2.serialization.MarshalBase64().register(soapEnvelope);\n");
             }
             
             if (hasDate || hasCalendar){
-                sb.append("        new org.ksoap2.serialization.MarshalDate().register(soapEnvelope);\n");
+                sb.append("        new net.phonex.ksoap2.serialization.MarshalDate().register(soapEnvelope);\n");
             }
             
             if (hasDouble || hasFloat){
-                sb.append("        new org.ksoap2.serialization.MarshalFloat().register(soapEnvelope);\n");
+                sb.append("        new net.phonex.ksoap2.serialization.MarshalFloat().register(soapEnvelope);\n");
             }
             
             if (hasCalendar){
