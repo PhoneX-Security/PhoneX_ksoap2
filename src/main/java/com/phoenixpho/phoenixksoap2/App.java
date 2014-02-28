@@ -62,8 +62,65 @@ public class App
         aMap.put("boolean",             "PropertyInfo.BOOLEAN_CLASS");
         aMap.put("Boolean",             "PropertyInfo.BOOLEAN_CLASS");
         aMap.put("java.util.Date",      "java.util.Date");
-        aMap.put("javax.xml.datatype.XMLGregorianCalendar", "PropertyInfo.STRING_CLASS");
+        aMap.put("javax.xml.datatype.XMLGregorianCalendar", "java.util.Calendar.class");
+        //aMap.put("javax.xml.datatype.XMLGregorianCalendar", "PropertyInfo.STRING_CLASS");
         returnMap = Collections.unmodifiableMap(aMap);
+    }
+    
+    /**
+     * Returns specialized Marshaler for given class if there is any.
+     * If not, returns null.
+     *  
+     * @param Cls
+     * @return 
+     */
+    public static String getMarshaler(Class cls){
+        if (cls==null){
+            return null;
+        }        
+        
+        final String t = cls.getCanonicalName();
+        return getMarshaler(t);
+    }
+    
+    /**
+     * Returns specialized Marshaler for given class if there is any.
+     * If not, returns null.
+     *  
+     * @param Cls
+     * @return 
+     */
+    public static String getMarshaler(String canonicalName){
+        if (canonicalName==null){
+            return null;
+        }        
+        
+        final String t = canonicalName;
+        
+        // special serializers
+        if ("byte[]".equalsIgnoreCase(t)){
+            return "org.ksoap2.serialization.MarshalBase64";
+            
+        } else if("java.util.Date".equalsIgnoreCase(t)){
+            return "org.ksoap2.serialization.MarshalDate";
+            
+        } else if("java.lang.Double".equalsIgnoreCase(t)
+                || "java.lang.Float".equalsIgnoreCase(t)){
+            return "org.ksoap2.serialization.MarshalFloat";
+
+        } else if("java.lang.Integer".equalsIgnoreCase(t)){
+            return "net.phonex.soap.marshallers.MarshalInteger";
+            
+        } else if("java.lang.Long".equalsIgnoreCase(t)){
+            return "net.phonex.soap.marshallers.MarshalLong";
+            
+        } else if ("javax.xml.datatype.XMLGregorianCalendar".equalsIgnoreCase(t)
+                || "java.util.Calendar".equalsIgnoreCase(t)
+                || "java.util.GregorianCalendar".equalsIgnoreCase(t)){
+            return "net.phonex.soap.marshallers.MarshalCalendar";
+        }
+            
+        return null;            
     }
     
     public static String generateWrapperName(Class<?> en){
@@ -129,10 +186,22 @@ public class App
 + "        info.setNamespace("+AppPack+".soap.ServiceConstants.NAMESPACE); \n"                
 + "    } \n\n"
 + "    @Override \n"
-+ "    public void register(SoapSerializationEnvelope soapEnvelope) { \n"
++ "    public void register(SoapSerializationEnvelope soapEnvelope) { \n");
+        
+        // Special marshalers may be used to serialize the list.
+        String marshaler = getMarshaler(en);
+        if (marshaler==null){
+            sb.append(""
 + "        soapEnvelope.addMapping("+AppPack+".soap.ServiceConstants.NAMESPACE, \""+en.getSimpleName()+"\", "+t+".class);\n"
 + "        soapEnvelope.addMapping("+AppPack+".soap.ServiceConstants.NAMESPACE, \""+fieldName+"\", "+t+".class);\n"
-);
+            );
+        } else {
+            sb.append(""
++ "        soapEnvelope.addMapping("+AppPack+".soap.ServiceConstants.NAMESPACE, \""+en.getSimpleName()+"\", "+t+".class, new "+marshaler+"());\n"
++ "        soapEnvelope.addMapping("+AppPack+".soap.ServiceConstants.NAMESPACE, \""+fieldName+"\", "+t+".class, new "+marshaler+"());\n"
+            );
+        }
+            
         // additional registration entries
         if(registerAdd!=null){
             sb.append(registerAdd).append("\n");
@@ -145,7 +214,7 @@ public class App
         }
         
         sb.append(
-  "    }"                        
+  "    }\n"                        
 + "}\n");
         return sb.toString();
     }
@@ -155,6 +224,9 @@ public class App
         String can = en.getCanonicalName();
         boolean hasByteArray=false;
         boolean hasDate=false;
+        boolean hasInteger=false;
+        boolean hasLong=false;
+        boolean hasCalendar=false;
         boolean hasDouble=false;
         boolean hasFloat=false;
         // 
@@ -207,6 +279,10 @@ public class App
                 hasDouble=true;
             } else if("java.lang.Float".equalsIgnoreCase(t)){
                 hasFloat=true;
+            } else if("java.lang.Integer".equalsIgnoreCase(t)){
+                hasInteger=true;
+            } else if("java.lang.Long".equalsIgnoreCase(t)){
+                hasLong=true;
             }
             
             if (t.startsWith(pack)){
@@ -268,6 +344,7 @@ public class App
                 }
             } else if("javax.xml.datatype.XMLGregorianCalendar".equalsIgnoreCase(type)) {
                 type = "java.util.Calendar";
+                hasCalendar = true;
             }
             
             attr2idx.put(fld.getName(), Integer.valueOf(i));
@@ -538,12 +615,24 @@ public class App
                 sb.append("        new org.ksoap2.serialization.MarshalBase64().register(soapEnvelope);\n");
             }
             
-            if (hasDate){
+            if (hasDate || hasCalendar){
                 sb.append("        new org.ksoap2.serialization.MarshalDate().register(soapEnvelope);\n");
             }
             
             if (hasDouble || hasFloat){
                 sb.append("        new org.ksoap2.serialization.MarshalFloat().register(soapEnvelope);\n");
+            }
+            
+            if (hasCalendar){
+                sb.append("        new net.phonex.soap.marshallers.MarshalCalendar().register(soapEnvelope);\n");
+            }
+            
+            if (hasInteger){
+                sb.append("        new net.phonex.soap.marshallers.MarshalInteger().register(soapEnvelope);\n");
+            }
+            
+            if (hasLong){
+                sb.append("        new net.phonex.soap.marshallers.MarshalLong().register(soapEnvelope);\n");
             }
             
             // store already registered objects to avoid duplicates
