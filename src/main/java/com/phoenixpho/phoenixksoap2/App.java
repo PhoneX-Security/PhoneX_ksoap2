@@ -578,14 +578,18 @@ public class App
 + "                this."+n+" = date;  \n");
             } else if ("javax.xml.datatype.XMLGregorianCalendar".equalsIgnoreCase(c)){
                 sb.append(
-  "                final String str1_"+n+" = (String) arg1; \n"
-+ "                if (str1_"+n+"==null || str1_"+n+".length()==0){ \n"
-+ "                    this."+n+" = null; \n"
-+ "                } else { \n"
-+ "                    try { \n"
-+ "                        this."+n+" = "+AppPack+".util.DateUtils.stringToCalendar(str1_"+n+"); \n"
-+ "                    } catch (Exception e) { \n"
-+ "                        com.csipsimple.utils.Log.e(\""+en.getSimpleName()+"\", \"Problem with date parsing\", e); \n"
+  "                if (arg1 instanceof java.util.Calendar) {\n"
++ "                    this."+n+" = (java.util.Calendar) arg1;\n"
++ "                } else if (arg1 instanceof java.lang.String) {\n"       
++ "                    final String str1_"+n+" = (String) arg1; \n"
++ "                    if (str1_"+n+"==null || str1_"+n+".length()==0){ \n"
++ "                        this."+n+" = null; \n"
++ "                    } else { \n"
++ "                        try { \n"
++ "                            this."+n+" = "+AppPack+".util.DateUtils.stringToCalendar(str1_"+n+"); \n"
++ "                        } catch (Exception e) { \n"
++ "                            com.csipsimple.utils.Log.e(\""+en.getSimpleName()+"\", \"Problem with date parsing\", e); \n"
++ "                        } \n"
 + "                    } \n"
 + "                } \n"
 + "                \n");
