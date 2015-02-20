@@ -16,8 +16,8 @@ import java.util.logging.Logger;
  * @author ph4r05
  */
 public class Sync {
-    public static final String SRC_PATH = "/home/ph4r05/workspace/PhoenixSoap/phoenix-soap-parent/phoenix-soap-app/target/generated-sources/jaxb/com/phoenix/soap/beans";
-    public static final String DST_PATH = "/home/ph4r05/workspace/PhoenixKsoap2/src/main/java/com/phoenix/soap/beans";
+    public static final String SRC_PATH = "/Users/dusanklinec/workspace/PhoenixSoap/phoenix-soap-parent/phoenix-soap-app/target/generated-sources/jaxb/com/phoenix/soap/beans";
+    public static final String DST_PATH = "/Users/dusanklinec/workspace/PhoenixKsoap2/src/main/java/com/phoenix/soap/beans";
     
     public Sync() {
         // nothing to do

@@ -2,6 +2,7 @@ package com.phoenixpho.phoenixksoap2;
 
 import com.google.common.base.Predicate;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
@@ -572,7 +573,7 @@ public class App
 + "                try { \n"
 + "                    date = formatter_"+n+".parse((String) arg1); \n"
 + "                } catch (Exception e) { \n"
-+ "                    com.csipsimple.utils.Log.e(\""+en.getSimpleName()+"\", \"Problem with date parsing\", e); \n"
++ "                    net.phonex.util.Log.e(\""+en.getSimpleName()+"\", \"Problem with date parsing\", e); \n"
 + "                } \n"
 + "                \n"
 + "                this."+n+" = date;  \n");
@@ -588,11 +589,59 @@ public class App
 + "                        try { \n"
 + "                            this."+n+" = "+AppPack+".util.DateUtils.stringToCalendar(str1_"+n+"); \n"
 + "                        } catch (Exception e) { \n"
-+ "                            com.csipsimple.utils.Log.e(\""+en.getSimpleName()+"\", \"Problem with date parsing\", e); \n"
++ "                            net.phonex.util.Log.e(\""+en.getSimpleName()+"\", \"Problem with date parsing\", e); \n"
 + "                        } \n"
 + "                    } \n"
 + "                } \n"
 + "                \n");
+            } else if ("java.lang.Boolean".equalsIgnoreCase(c)) {
+                // type: java.lang.Boolean
+                sb.append(
+"               if (arg1 instanceof Boolean) {\n"
++ "                   this."+n+" = (java.lang.Boolean) arg1;\n"
++ "               } else if (arg1 instanceof java.lang.String) {\n"
++ "                   final String tmpArg1 = (String) arg1;\n"
++ "                   try {\n"
++ "                       this."+n+" = Boolean.parseBoolean(tmpArg1);\n"
++ "                   } catch (Exception e) {\n"
++ "                       net.phonex.util.Log.ef(\""+en.getSimpleName()+"\", \"Problem with "+n+" parsing, str=%s\", e, tmpArg1);\n"
++ "                   }\n"
++ "               } else {\n"
++ "                   net.phonex.util.Log.e(\""+en.getSimpleName()+"\", \"Problem with "+n+" parsing - unknown type\");\n"
++ "               }\n"
++ "              \n");    
+            } else if ("java.lang.Integer".equalsIgnoreCase(c)) {
+                // type: java.lang.Integer
+                sb.append(
+"               if (arg1 instanceof Integer) {\n"
++ "                   this."+n+" = (java.lang.Integer) arg1;\n"
++ "               } else if (arg1 instanceof java.lang.String) {\n"
++ "                   final String tmpArg1 = (String) arg1;\n"
++ "                   try {\n"
++ "                       this."+n+" = Integer.parseInt(tmpArg1);\n"
++ "                   } catch (Exception e) {\n"
++ "                       net.phonex.util.Log.ef(\""+en.getSimpleName()+"\", \"Problem with "+n+" parsing, str=%s\", e, tmpArg1);\n"
++ "                   }\n"
++ "               } else {\n"
++ "                   net.phonex.util.Log.e(\""+en.getSimpleName()+"\", \"Problem with "+n+" parsing - unknown type\");\n"
++ "               }\n"
++ "              \n");    
+            }else if ("java.lang.Integer".equalsIgnoreCase(c)) {
+                // type: java.lang.Long
+                sb.append(
+"               if (arg1 instanceof Long) {\n"
++ "                   this."+n+" = (java.lang.Long) arg1;\n"
++ "               } else if (arg1 instanceof java.lang.String) {\n"
++ "                   final String tmpArg1 = (String) arg1;\n"
++ "                   try {\n"
++ "                       this."+n+" = Long.parseLong(tmpArg1);\n"
++ "                   } catch (Exception e) {\n"
++ "                       net.phonex.util.Log.ef(\""+en.getSimpleName()+"\", \"Problem with "+n+" parsing, str=%s\", e, tmpArg1);\n"
++ "                   }\n"
++ "               } else {\n"
++ "                   net.phonex.util.Log.e(\""+en.getSimpleName()+"\", \"Problem with "+n+" parsing - unknown type\");\n"
++ "               }\n"
++ "              \n");    
             } else if ("int".equalsIgnoreCase(c)) {
                 sb.append(
   "                this."+n+" = Integer.parseInt(arg1.toString());\n");
@@ -839,6 +888,9 @@ public class App
     public static void main( String[] args )
     {        
         System.out.println( "Hello World!" );
+        File dir = new File("/tmp/classes");
+        dir.mkdirs();
+        
         Reflections.collect();
         
         //Reflections reflections = new Reflections(""+AppPack+".soap.beans");
