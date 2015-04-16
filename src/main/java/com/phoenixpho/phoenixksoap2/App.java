@@ -1,32 +1,21 @@
 package com.phoenixpho.phoenixksoap2;
 
 import com.google.common.base.Predicate;
+import org.reflections.Reflections;
+import org.reflections.scanners.*;
+import org.reflections.util.ConfigurationBuilder;
+import org.reflections.util.FilterBuilder;
+
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlType;
-import org.reflections.Reflections;
-import org.reflections.scanners.ConvertersScanner;
-import org.reflections.scanners.FieldAnnotationsScanner;
-import org.reflections.scanners.MethodAnnotationsScanner;
-import org.reflections.scanners.SubTypesScanner;
-import org.reflections.scanners.TypeAnnotationsScanner;
-import org.reflections.util.ConfigurationBuilder;
-import org.reflections.util.FilterBuilder;
 
 /**
  * Hello world!
@@ -34,16 +23,12 @@ import org.reflections.util.FilterBuilder;
  */
 public class App 
 {
-    private class Serializer{
-        public String attrName;
-        public String classname;
-        public String body;
-    }
+    public static final String DESTINATION_PATH = "/tmp/classes";
     
     // cache enum types 
     public static final String AppPack = "net.phonex";
-    public static final String pack = "com.phoenix.soap.beans";
     public static final String packDest = AppPack + ".soap.entities";
+    public static final String pack = "com.phoenix.soap.beans";
     public static Set<String> enumTypes = new HashSet<String>();
     // serializer name, serializer body
     public static Map<String, String> vectorSerializers = new HashMap<String, String>();
@@ -888,7 +873,7 @@ public class App
     public static void main( String[] args )
     {        
         System.out.println( "Hello World!" );
-        File dir = new File("/tmp/classes");
+        File dir = new File(DESTINATION_PATH);
         dir.mkdirs();
         
         Reflections.collect();
@@ -985,7 +970,7 @@ public class App
             
             try {
                 // Create file 
-                FileWriter fstream = new FileWriter("/tmp/classes/" + fname);
+                FileWriter fstream = new FileWriter(DESTINATION_PATH + "/" + fname);
                 BufferedWriter out = new BufferedWriter(fstream);
                 out.write(body);
                 out.close();
@@ -1008,7 +993,7 @@ public class App
             try {
                 // Create file 
                 System.out.println("Wrapper: " + e.getKey());
-                FileWriter fstream = new FileWriter("/tmp/classes/" + e.getKey() + ".java");
+                FileWriter fstream = new FileWriter(DESTINATION_PATH + "/" + e.getKey() + ".java");
                 BufferedWriter out = new BufferedWriter(fstream);
                 out.write(e.getValue());
                 out.close();
