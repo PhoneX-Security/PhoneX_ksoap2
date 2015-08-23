@@ -82,6 +82,13 @@
                 </exclusion>
             </exclusions>
         </dependency>
+
+      <!-- JAXB toString generator -->
+      <dependency>
+          <groupId>org.jvnet.jaxb2_commons</groupId>
+          <artifactId>jaxb2-basics-runtime</artifactId>
+          <version>0.6.4</version>
+      </dependency>
       
     <dependency>
       <groupId>junit</groupId>
