@@ -611,7 +611,7 @@ public class App
 + "                   net.phonex.util.Log.e(\""+en.getSimpleName()+"\", \"Problem with "+n+" parsing - unknown type\");\n"
 + "               }\n"
 + "              \n");    
-            }else if ("java.lang.Integer".equalsIgnoreCase(c)) {
+            }else if ("java.lang.Long".equalsIgnoreCase(c)) {
                 // type: java.lang.Long
                 sb.append(
 "               if (arg1 instanceof Long) {\n"
